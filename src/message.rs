@@ -45,11 +45,28 @@ pub struct Message {
 }
 
 /// Cache of data values that the C msg struct point to.
-#[derive(Debug, Default, Clone)]
+#[derive(Default, Clone)]
 pub(crate) struct MessageData {
     pub(crate) topic: CString,
     pub(crate) payload: Vec<u8>,
     pub(crate) props: Properties,
+}
+
+impl std::fmt::Debug for MessageData {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        // Two fat-pointers deep when casting; the first survives here.
+        let payload = std::str::from_utf8(&self.payload)
+            .map_err(|_| self.payload.as_slice());
+        fmt
+            .debug_struct("MessageData")
+            .field("topic", &self.topic)
+            .field("payload", match &payload {
+                Ok(payload) => payload,
+                Err(slice) => slice,
+            })
+            .field("props", &self.props)
+            .finish()
+    }
 }
 
 impl MessageData {
