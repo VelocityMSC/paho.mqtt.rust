@@ -191,6 +191,10 @@ impl Message {
     pub fn properties(&self) -> &Properties {
         &self.data.props
     }
+
+    pub fn message_data(&self) -> &impl std::fmt::Debug {
+        &self.data
+    }
 }
 
 impl Default for Message {
