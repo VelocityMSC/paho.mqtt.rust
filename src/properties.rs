@@ -794,7 +794,6 @@ impl Clone for Property {
 ///
 /// This is a collection of properties that can be added to outgoing packets
 /// or retrieved from incoming packets.
-#[derive(Debug)]
 pub struct Properties {
     pub(crate) cprops: ffi::MQTTProperties,
 }
@@ -985,6 +984,81 @@ impl Default for Properties {
     fn default() -> Self {
         Properties {
             cprops: ffi::MQTTProperties::default(),
+        }
+    }
+}
+
+impl std::fmt::Debug for Properties {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        use PropertyCode::*;
+        let mut exhaustive = true;
+        let mut out = fmt.debug_struct("Properties");
+        macro_rules! property {($($f:expr,)*) => {$(
+            if let Some(property) = self.get($f) {
+                out.field(stringify!($f), &property);
+            } else {
+                exhaustive = false;
+            }
+        )*};}
+
+        property!(
+            PayloadFormatIndicator,
+            MessageExpiryInterval,
+            ContentType,
+            ResponseTopic,
+            CorrelationData,
+            SubscriptionIdentifier,
+            SessionExpiryInterval,
+            AssignedClientIdentifer,
+            ServerKeepAlive,
+            AuthenticationMethod,
+            AuthenticationData,
+            RequestProblemInformation,
+            WillDelayInterval,
+            RequestResponseInformation,
+            ResponseInformation,
+            ServerReference,
+            ReasonString,
+            ReceiveMaximum,
+            TopicAliasMaximum,
+            TopicAlias,
+            MaximumQos,
+            RetainAvailable,
+            MaximumPacketSize,
+            WildcardSubscriptionAvailable,
+            SubscriptionIdentifiersAvailable,
+            SharedSubscriptionAvailable,
+        );
+
+        let mut user_properties = self.user_iter();
+        if let Some(first) = user_properties.next() {
+            struct UserProperties<'a>((String, String), StringPairIterator<'a>);
+
+            impl std::fmt::Debug for UserProperties<'_> {
+                fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+                    let mut out = fmt.debug_map();
+                    let UserProperties((key, value), iter) = &self;
+                    let &StringPairIterator { props, code, idx } = iter;
+                    let mut iter = StringPairIterator {
+                        props, code, idx,
+                    };
+                    out.entry(key, value);
+                    while let Some((key, value)) = &iter.next() {
+                        out.entry(key, value);
+                    }
+                    out.finish()
+                }
+            }
+
+            out.field(stringify!(UserProperty), &UserProperties(first, user_properties));
+        } else {
+            exhaustive = false;
+        }
+
+        if exhaustive {
+            out.finish()
+        } else {
+            out.finish_non_exhaustive()
         }
     }
 }
