@@ -200,9 +200,25 @@ impl PropertyCode {
 ///   "UTF-8 Encoded String"  - String
 ///   "UTF-8 String Pair"  - (String,String)
 ///
-#[derive(Debug)]
 pub struct Property {
     pub(crate) cprop: ffi::MQTTProperty,
+}
+
+impl std::fmt::Debug for Property {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        macro_rules! prop_out {($get:tt) => {
+            self.$get().ok_or(std::fmt::Error).and_then(|value| std::fmt::Debug::fmt(&value, fmt))
+        };}
+        match self.property_type() {
+            PropertyType::Byte => prop_out!(get_byte),
+            PropertyType::TwoByteInteger => prop_out!(get_u16),
+            PropertyType::FourByteInteger => prop_out!(get_u32),
+            PropertyType::VariableByteInteger => prop_out!(get_int),
+            PropertyType::BinaryData => prop_out!(get_binary),
+            PropertyType::Utf8EncodedString => prop_out!(get_string),
+            PropertyType::Utf8StringPair => prop_out!(get_string_pair),
+        }
+    }
 }
 
 impl Property {
